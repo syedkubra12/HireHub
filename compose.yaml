@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: hirehub
+      MYSQL_USER: hirehub
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hirehub_dev}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  notifications:
+    build: ./notifications
+    environment:
+      PORT: 3001
+    ports:
+      - "3001:3001"
+
+  api:
+    build: ./backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/hirehub?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: hirehub
+      DB_PASSWORD: ${MYSQL_PASSWORD:-hirehub_dev}
+      NOTIFICATIONS_URL: http://notifications:3001
+    depends_on:
+      mysql:
+        condition: service_healthy
+      notifications:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: .
+    depends_on:
+      - api
+    ports:
+      - "5173:5173"
+
+volumes:
+  mysql-data:

@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+.idea
+.vscode
+backend/target
+notifications/node_modules
